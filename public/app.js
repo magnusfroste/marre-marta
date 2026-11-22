@@ -95,7 +95,7 @@
     paus: document.getElementById('paus'),
     ljud: document.querySelector('[data-ljud]'),
     rost: document.querySelector('[data-rost]'),
-    dpad: document.getElementById('dpad'),
+    styrspak: document.getElementById('styrspak'),
   };
 
   /* ---------- tillstånd ------------------------------------------------- */
@@ -115,6 +115,7 @@
     marre: null,
     skydd: 0,             // osynlig tid efter kuddhörnan
     skak: 0,
+    stig: [],             // rutor Marre går till själv när man pekat dit
     ljud: true,
     rost: true,
   };
@@ -273,6 +274,7 @@
     S.skydd = 1.6;      // lugn start – ingen fröken tar dig direkt
     S.samtal = 0;
     S.skak = 0;
+    S.stig = [];
     S.marre = {
       x: START.x, y: START.y, px: START.x, py: START.y, riktning: 'ner', ror: 0,
     };
@@ -689,28 +691,43 @@
       ctx.fill();
     }
     if (f.jagad > 0) {
+      // Pratbubbla med ett tydligt utropstecken – en "!" som går att läsa även
+      // när brickan är liten.
+      const bw = r * 0.62;
+      const bh = r * 0.72;
+      const bx = cx - bw / 2;
+      const by = cy - r * 2.05;
       ctx.fillStyle = '#d94a3d';
-      runda(cx - r * 0.28, cy - r * 1.9, r * 0.56, r * 0.52, r * 0.14);
+      runda(bx, by, bw, bh, r * 0.16);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(cx - r * 0.1, by + bh - 1);
+      ctx.lineTo(cx + r * 0.1, by + bh - 1);
+      ctx.lineTo(cx, by + bh + r * 0.16);
+      ctx.closePath();
       ctx.fill();
       ctx.fillStyle = '#fff';
-      ctx.fillRect(cx - r * 0.05, cy - r * 1.79, r * 0.1, r * 0.2);
-      ctx.fillRect(cx - r * 0.05, cy - r * 1.54, r * 0.1, r * 0.09);
+      runda(cx - r * 0.045, by + bh * 0.18, r * 0.09, bh * 0.42, r * 0.045);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(cx, by + bh * 0.8, r * 0.05, 0, 6.3);
+      ctx.fill();
     }
     ctx.restore();
   }
 
-  function tecknaSikt() {
+  // Fröken som fått syn på Marre får en pulserande röd halo i stället för en
+  // streckad linje – linjen korsade möbler och såg ut som en ritbugg.
+  function tecknaSikt(nu) {
     const t = ruta;
+    const puls = 0.5 + 0.5 * Math.sin(nu / 260);
     S.froknar.forEach((f) => {
       if (!f.jagad) return;
       ctx.save();
-      ctx.setLineDash([t * 0.12, t * 0.12]);
-      ctx.strokeStyle = 'rgba(217,74,61,0.45)';
-      ctx.lineWidth = Math.max(1.5, t * 0.03);
+      ctx.fillStyle = 'rgba(217,74,61,' + (0.10 + puls * 0.10) + ')';
       ctx.beginPath();
-      ctx.moveTo(f.px * t + t / 2, f.py * t + t / 2);
-      ctx.lineTo(S.marre.px * t + t / 2, S.marre.py * t + t / 2);
-      ctx.stroke();
+      ctx.arc(f.px * t + t / 2, f.py * t + t / 2, t * (0.44 + puls * 0.06), 0, 6.3);
+      ctx.fill();
       ctx.restore();
     });
   }
@@ -771,7 +788,7 @@
     tecknaGolv();
     S.saker.forEach((s) => tecknaSak(s, tid));
     tecknaLedtrad(nu);
-    tecknaSikt();
+    tecknaSikt(nu);
     S.froknar.forEach((f) => tecknaFroken(f, tid));
     tecknaMarre(tid);
     tecknaExtra();
@@ -779,24 +796,19 @@
   }
 
   /* ---------- rörelse --------------------------------------------------- */
-  const STEG_MS = 118;
+  const STEG_MS = 150;   // ett steg var 150:e ms – hinner se och styra
 
-  function flyttaMarre() {
+
+  // Ett steg till rutan (x, y) – gemensam väg för tumme, piltangenter och
+  // "peka dit du vill gå" så att plockning och kuddhörna beter sig lika.
+  function stegTill(x, y) {
     const m = S.marre;
-    if (!m || S.lage !== 'spel') return;
-    let dx = 0;
-    let dy = 0;
-    if (m.riktning === 'upp') dy = -1;
-    else if (m.riktning === 'ner') dy = 1;
-    else if (m.riktning === 'vanster') dx = -1;
-    else if (m.riktning === 'hoger') dx = 1;
-    if (!dx && !dy) return;
-    const x = m.x + dx;
-    const y = m.y + dy;
-    if (!arGolv(x, y)) return;
+    if (!m || S.lage !== 'spel') return false;
+    if (!arGolv(x, y)) return false;
     if (!rort) {
       rort = true;
-      el.dpad.classList.remove('vinkar');
+      if (!haller) el.styrspak.classList.remove('vinkar', 'syns');
+      else el.styrspak.classList.remove('vinkar');
     }
     m.x = x;
     m.y = y;
@@ -808,6 +820,31 @@
       sag('Kuddhörnan! Nu ser fröknarna dig inte.');
       ritaHUD();
     }
+    return true;
+  }
+
+  function flyttaMarre() {
+    const m = S.marre;
+    if (!m || S.lage !== 'spel') return;
+    let dx = 0;
+    let dy = 0;
+    if (m.riktning === 'upp') dy = -1;
+    else if (m.riktning === 'ner') dy = 1;
+    else if (m.riktning === 'vanster') dx = -1;
+    else if (m.riktning === 'hoger') dx = 1;
+    if (!dx && !dy) return;
+    stegTill(m.x + dx, m.y + dy);
+  }
+
+  // Peka på en ruta: Marre går dit själv, ett steg i taget. Enklaste vägen in
+  // för den som inte kan styra en spak än.
+  function gaTillRuta(x, y) {
+    if (S.lage !== 'spel' || !arGolv(x, y)) return false;
+    if (S.marre.x === x && S.marre.y === y) return false;
+    const v = vag({ x: S.marre.x, y: S.marre.y }, { x, y });
+    if (!v.length) return false;
+    S.stig = v;
+    return true;
   }
 
   /* ---------- fröknarnas runda ------------------------------------------ */
@@ -869,11 +906,18 @@
 
     if (nu - sistMarre > STEG_MS) {
       sistMarre = nu;
-      flyttaMarre();
+      if (S.stig && S.stig.length && !haller) {
+        const n = S.stig.shift();
+        if (!stegTill(n.x, n.y)) S.stig.length = 0;
+      } else {
+        flyttaMarre();
+      }
     }
+    // Visar direkt var tummen kan sättas – och slutar så fort barnet rört sig.
     if (!rort) {
-      const vinka = nu - nivaStart > 5000;
-      if (vinka !== el.dpad.classList.contains('vinkar')) el.dpad.classList.toggle('vinkar', vinka);
+      const vinka = nu - nivaStart > 900;
+      if (vinka && !el.styrspak.classList.contains('vinkar')) visaVink();
+      else if (!vinka) el.styrspak.classList.remove('vinkar', 'syns');
     }
     if (S.skydd > 0) S.skydd = Math.max(0, S.skydd - 0.016);
 
@@ -916,41 +960,108 @@
   document.addEventListener('keydown', (e) => {
     if (TANGENTER[e.key] && S.lage === 'spel') {
       S.marre.riktning = TANGENTER[e.key];
+      S.stig = [];
       e.preventDefault();
     }
     if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') växlaPaus();
   });
 
-  function bindPil(selektor, riktning) {
-    const knapp = document.querySelector(selektor);
-    if (!knapp) return;
-    const satt = (e) => {
-      e.preventDefault();
-      if (S.lage !== 'spel') return;
-      S.marre.riktning = riktning;
-      flyttaMarre();
-      sistMarre = performance.now();
-    };
-    knapp.addEventListener('pointerdown', satt);
-    knapp.addEventListener('contextmenu', (e) => e.preventDefault());
+  document.addEventListener('keyup', (e) => {
+    // Släpper man tangenten stannar Marre – annars går hon i väggen.
+    if (TANGENTER[e.key] && S.marre.riktning === TANGENTER[e.key]) S.marre.riktning = null;
+  });
+
+  /* ---------- tumstyrning (Roblox-principen) ---------------------------- */
+  // Tummen sätts var som helst på planen: spaken dyker upp under den och Marre
+  // går åt det håll tummen pekar. Lyfter man tummen stannar hon. En kort tryck
+  // utan dragning betyder "gå dit" och Marre hittar vägen själv.
+  const DÖDZON = 12;      // px innan spaken reagerar
+  const TRYCK_MS = 260;   // kortare tryck = peka-dit
+
+  let haller = null;      // { id, x0, y0, tid, rort }
+
+  function visaSpak(x, y) {
+    el.styrspak.style.left = x + 'px';
+    el.styrspak.style.top = y + 'px';
+    el.styrspak.style.setProperty('--kx', '0px');
+    el.styrspak.style.setProperty('--ky', '0px');
+    el.styrspak.classList.remove('vinkar');
+    el.styrspak.classList.add('syns');
   }
 
-  bindPil('[data-pil="upp"]', 'upp');
-  bindPil('[data-pil="ner"]', 'ner');
-  bindPil('[data-pil="vanster"]', 'vanster');
-  bindPil('[data-pil="hoger"]', 'hoger');
+  function visaVink() {
+    // Visar var tummen kan sättas: mitt på planen, strax under mitten.
+    const r = duk.getBoundingClientRect();
+    const s = el.styrspak.parentElement.getBoundingClientRect();
+    el.styrspak.style.left = (r.left - s.left + r.width / 2) + 'px';
+    el.styrspak.style.top = (r.top - s.top + r.height * 0.68) + 'px';
+    el.styrspak.style.setProperty('--kx', '0px');
+    el.styrspak.style.setProperty('--ky', '0px');
+    el.styrspak.classList.add('vinkar', 'syns');
+  }
 
-  let svep = null;
-  duk.addEventListener('pointerdown', (e) => { svep = { x: e.clientX, y: e.clientY }; });
-  duk.addEventListener('pointerup', (e) => {
-    if (!svep || S.lage !== 'spel') return;
-    const dx = e.clientX - svep.x;
-    const dy = e.clientY - svep.y;
-    svep = null;
-    if (Math.hypot(dx, dy) < 18) return;
-    S.marre.riktning = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'hoger' : 'vanster') : (dy > 0 ? 'ner' : 'upp');
-    flyttaMarre();
+  function rutaVid(clientX, clientY) {
+    const r = duk.getBoundingClientRect();
+    if (!ruta) return null;
+    const x = Math.floor((clientX - r.left) / ruta);
+    const y = Math.floor((clientY - r.top) / ruta);
+    if (x < 0 || y < 0 || x >= COLS || y >= ROWS) return null;
+    return { x, y };
+  }
+
+  duk.addEventListener('pointerdown', (e) => {
+    if (S.lage !== 'spel') return;
+    e.preventDefault();
+    haller = { id: e.pointerId, x0: e.clientX, y0: e.clientY, tid: performance.now(), rort: false };
+    S.stig = [];
+    if (duk.setPointerCapture) duk.setPointerCapture(e.pointerId);
+    visaSpak(e.clientX, e.clientY);
   });
+
+  duk.addEventListener('pointermove', (e) => {
+    if (!haller || e.pointerId !== haller.id || S.lage !== 'spel') return;
+    e.preventDefault();
+    const dx = e.clientX - haller.x0;
+    const dy = e.clientY - haller.y0;
+    const avst = Math.hypot(dx, dy);
+    if (avst < DÖDZON) {
+      S.marre.riktning = null;
+      el.styrspak.style.setProperty('--kx', '0px');
+      el.styrspak.style.setProperty('--ky', '0px');
+      return;
+    }
+    haller.rort = haller.rort || avst > DÖDZON * 2;
+    // Kulan följer tummen, men bara en bit – spaken ska kännas, inte slira.
+    const m = Math.min(avst, 46);
+    el.styrspak.style.setProperty('--kx', (dx / avst) * m + 'px');
+    el.styrspak.style.setProperty('--ky', (dy / avst) * m + 'px');
+    const riktning = Math.abs(dx) > Math.abs(dy)
+      ? (dx > 0 ? 'hoger' : 'vanster')
+      : (dy > 0 ? 'ner' : 'upp');
+    if (S.marre.riktning !== riktning) {
+      S.marre.riktning = riktning;
+      sistMarre = performance.now(); // första steget direkt, inte efter 118 ms
+      flyttaMarre();
+    }
+  });
+
+  function släpp(e) {
+    if (!haller || (e && e.pointerId !== haller.id)) return;
+    const kortTryck = !haller.rort && performance.now() - haller.tid < TRYCK_MS;
+    const start = haller;
+    haller = null;
+    S.marre.riktning = null;
+    el.styrspak.classList.remove('syns', 'vinkar');
+    if (kortTryck && S.lage === 'spel') {
+      const r = rutaVid(e.clientX, e.clientY);
+      if (r) gaTillRuta(r.x, r.y);
+    }
+  }
+
+  duk.addEventListener('pointerup', släpp);
+  duk.addEventListener('pointercancel', släpp);
+  duk.addEventListener('pointerleave', släpp);
+  duk.addEventListener('contextmenu', (e) => e.preventDefault());
 
   function växlaPaus() {
     if (S.lage === 'spel') {
@@ -1008,5 +1119,5 @@
   else window.addEventListener('load', starta);
 
   // för felsökning i konsolen
-  window.__marre = { S, startaNiva, flyttaMarre, stegFroken, KARTA, vag };
+  window.__marre = { S, startaNiva, flyttaMarre, stegTill, gaTillRuta, stegFroken, KARTA, vag };
 })();
