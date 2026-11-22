@@ -168,6 +168,18 @@ body { overflow: hidden; }
 
 .recept-sak.gjord::after { content: '✓'; color: #2f7d6f; font-weight: 700; }
 
+/* Nästa sak i receptet – pulserar så att barn som inte läser ser ordningen. */
+.recept-sak.nasta {
+  border-color: var(--farg);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--farg) 28%, transparent);
+  animation: nasta-puls 1.3s ease-in-out infinite;
+}
+
+@keyframes nasta-puls {
+  0%, 100% { box-shadow: 0 0 0 2px color-mix(in srgb, var(--farg) 22%, transparent); }
+  50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--farg) 34%, transparent); }
+}
+
 .recept-pil { color: #b6ab9c; font-size: 13px; }
 .recept-namn { font-weight: 600; color: var(--black); white-space: nowrap; }
 .recept-klart { color: var(--gron); font-weight: 600; }
@@ -257,6 +269,24 @@ body { overflow: hidden; }
 
 .pil:active { background: #f3ece1; transform: translateY(1px); }
 .pil:focus-visible { outline: 3px solid var(--farg); outline-offset: 2px; }
+
+/* Vinkar med krysset om barnet inte har rört sig efter några sekunder. */
+#dpad.vinkar .pil[data-pil='upp'] { animation: vink-upp 1.4s ease-in-out infinite; }
+#dpad.vinkar .pil[data-pil='hoger'] { animation: vink-hoger 1.4s ease-in-out infinite 0.35s; }
+
+@keyframes vink-upp {
+  0%, 70%, 100% { transform: none; background: var(--kort); }
+  35% { transform: translateY(-3px); background: #fdf0e6; }
+}
+
+@keyframes vink-hoger {
+  0%, 70%, 100% { transform: none; background: var(--kort); }
+  35% { transform: translateX(3px); background: #fdf0e6; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .recept-sak.nasta, #dpad.vinkar .pil { animation: none; }
+}
 
 .pil[data-pil='upp'] { grid-column: 2; grid-row: 1; }
 .pil[data-pil='vanster'] { grid-column: 1; grid-row: 2; }

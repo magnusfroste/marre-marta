@@ -95,6 +95,7 @@
     paus: document.getElementById('paus'),
     ljud: document.querySelector('[data-ljud]'),
     rost: document.querySelector('[data-rost]'),
+    dpad: document.getElementById('dpad'),
   };
 
   /* ---------- tillstånd ------------------------------------------------- */
@@ -200,6 +201,20 @@
     S.saker.push({ x: r.x, y: r.y, slag, puls: Math.random() * 6.28 });
   }
 
+  // Se till att saken som står på tur finns på golvet – annars kan barnet
+  // leta efter något som inte finns och tappa tålamodet.
+  function sakSaknas() {
+    const recept = S.recept[S.receptNr];
+    if (!recept) return;
+    const slag = recept.sak[S.sekvens.length];
+    if (!slag) return;
+    if (S.saker.some((s) => s.slag === slag)) return;
+    const tomma = ledigaRutor();
+    if (!tomma.length) return;
+    const r = tomma[slump(tomma.length)];
+    S.saker.push({ x: r.x, y: r.y, slag, puls: 0 });
+  }
+
   /* ---------- vägval ---------------------------------------------------- */
   const NABO = [[0, -1], [1, 0], [0, 1], [-1, 0]];
 
@@ -274,8 +289,11 @@
       senaste: 0,
     }));
     for (let i = 0; i < n.saker; i++) nySak();
+    sakSaknas();
     ritaHUD();
     S.lage = 'spel';
+    nivaStart = performance.now();
+    rort = false;
     sag(n.text);
   }
 
@@ -296,6 +314,7 @@
         S.sekvens = [];
       }
     }
+    sakSaknas();
     ritaHUD();
   }
 
@@ -389,7 +408,9 @@
     }
     el.recept.innerHTML = recept.sak.map((s, i) => {
       const gjord = i < S.sekvens.length;
-      return '<span class="recept-sak' + (gjord ? ' gjord' : '') + '" style="--farg:' + F.saker[s] + '">'
+      const nasta = i === S.sekvens.length;
+      return '<span class="recept-sak' + (gjord ? ' gjord' : '') + (nasta ? ' nasta' : '')
+        + '" style="--farg:' + F.saker[s] + '">'
         + '<i class="sak-ikon ' + s + '" aria-hidden="true"></i>' + SAKNAMN[s] + '</span>';
     }).join('<span class="recept-pil" aria-hidden="true">→</span>')
       + '<span class="recept-namn">= ' + recept.namn + '</span>';
@@ -694,6 +715,28 @@
     });
   }
 
+  // En pulserande ring kring den sak som står på tur – barn som inte läser ser
+  // ändå vilken sak som ska plockas härnäst.
+  function tecknaLedtrad(nu) {
+    const recept = S.recept[S.receptNr];
+    if (!recept) return;
+    const slag = recept.sak[S.sekvens.length];
+    if (!slag) return;
+    const t = ruta;
+    S.saker.forEach((s) => {
+      if (s.slag !== slag) return;
+      const puls = 0.5 + 0.5 * Math.sin(nu / 320);
+      ctx.save();
+      ctx.strokeStyle = 'rgba(224,89,47,' + (0.35 + puls * 0.5) + ')';
+      ctx.lineWidth = Math.max(2, t * (0.06 + puls * 0.05));
+      ctx.beginPath();
+      ctx.arc((s.px !== undefined ? s.px : s.x) * t + t / 2, (s.py !== undefined ? s.py : s.y) * t + t / 2,
+        t * (0.34 + puls * 0.1), 0, 6.3);
+      ctx.stroke();
+      ctx.restore();
+    });
+  }
+
   function tecknaExtra() {
     const t = ruta;
     S.froknar.forEach((f) => {
@@ -727,6 +770,7 @@
     }
     tecknaGolv();
     S.saker.forEach((s) => tecknaSak(s, tid));
+    tecknaLedtrad(nu);
     tecknaSikt();
     S.froknar.forEach((f) => tecknaFroken(f, tid));
     tecknaMarre(tid);
@@ -750,6 +794,10 @@
     const x = m.x + dx;
     const y = m.y + dy;
     if (!arGolv(x, y)) return;
+    if (!rort) {
+      rort = true;
+      el.dpad.classList.remove('vinkar');
+    }
     m.x = x;
     m.y = y;
     m.ror = performance.now();
@@ -803,6 +851,8 @@
   let sistMarre = 0;
   let sistOreda = 0;
   let sistSpawn = 0;
+  let nivaStart = 0;
+  let rort = false;
 
   function tick(nu) {
     requestAnimationFrame(tick);
@@ -820,6 +870,10 @@
     if (nu - sistMarre > STEG_MS) {
       sistMarre = nu;
       flyttaMarre();
+    }
+    if (!rort) {
+      const vinka = nu - nivaStart > 5000;
+      if (vinka !== el.dpad.classList.contains('vinkar')) el.dpad.classList.toggle('vinkar', vinka);
     }
     if (S.skydd > 0) S.skydd = Math.max(0, S.skydd - 0.016);
 
