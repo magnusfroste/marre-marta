@@ -255,7 +255,7 @@
     S.sekvens = [];
     S.klappar = [];
     S.saker = [];
-    S.skydd = 0;
+    S.skydd = 1.6;      // lugn start – ingen fröken tar dig direkt
     S.samtal = 0;
     S.skak = 0;
     S.marre = {
