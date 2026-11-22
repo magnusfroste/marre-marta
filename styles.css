@@ -1,0 +1,379 @@
+/* Marre & Marta – allt ska rymmas på en iPad i landskap (1024×768). */
+
+/* Fredoka (SIL OFL 1.1) – lokalt, inga webbtypsnitt. */
+@font-face {
+  font-family: 'Fredoka';
+  src: url('/fonts/fredoka-400.ttf') format('truetype');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Fredoka';
+  src: url('/fonts/fredoka-500.ttf') format('truetype');
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Fredoka';
+  src: url('/fonts/fredoka-600.ttf') format('truetype');
+  font-weight: 600;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Fredoka';
+  src: url('/fonts/fredoka-700.ttf') format('truetype');
+  font-weight: 700;
+  font-display: swap;
+}
+
+:root {
+  --papper: #faf7f2;
+  --kort: #ffffff;
+  --black: #14181f;
+  --dampad: #5b6673;
+  --ram: #e7ded4;
+  --farg: #e0592f;
+  --farg-mork: #b8411d;
+  --stjarna: #e9b62f;
+  --gron: #2f7d6f;
+  --rod: #c9483b;
+  --radie: 18px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--papper);
+  color: var(--black);
+  font-family: 'Fredoka', 'Nunito', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+body { overflow: hidden; }
+
+#spelet {
+  height: 100dvh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 6px;
+  padding: 8px 12px 10px;
+}
+
+/* ---------- HUD ---------- */
+#hud {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 54px;
+}
+
+.hud-vanster,
+.hud-hoger { display: flex; align-items: center; gap: 8px; }
+
+.marke {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--kort);
+  border: 1px solid var(--ram);
+  border-radius: 999px;
+  padding: 7px 13px 7px 10px;
+  font-size: 17px;
+  font-weight: 600;
+  box-shadow: 0 1px 0 rgba(20, 24, 31, 0.04);
+  white-space: nowrap;
+}
+
+.marke .glyf { font-size: 15px; }
+
+.stjarnglyf {
+  width: 15px;
+  height: 15px;
+  background: var(--stjarna);
+  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+}
+
+/* oreda-mätaren: fylls av stök, Marta ringer när den är full */
+.oreda-marke {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--kort);
+  border: 1px solid var(--ram);
+  border-radius: 999px;
+  padding: 6px 12px 6px 10px;
+  font-size: 13px;
+  color: var(--dampad);
+  white-space: nowrap;
+}
+
+.oreda {
+  position: relative;
+  width: 96px;
+  height: 10px;
+  border-radius: 999px;
+  background: #efe6d8;
+  overflow: hidden;
+}
+
+.oreda::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: var(--oreda, 0%);
+  background: linear-gradient(90deg, #4ea86b, #e9b62f 62%, #d94a3d);
+  transition: width 220ms linear;
+}
+
+.oreda[data-straff='hog'] { animation: pulsa 900ms ease-in-out infinite; }
+
+@keyframes pulsa {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+}
+
+/* receptraden: sakerna i den ordning de ska samlas */
+#recept {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  flex-wrap: nowrap;
+  overflow: hidden;
+  font-size: 14px;
+  color: var(--dampad);
+}
+
+.recept-sak {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--kort);
+  border: 1px solid var(--ram);
+  border-radius: 999px;
+  padding: 5px 11px 5px 7px;
+  font-weight: 600;
+  color: var(--black);
+  white-space: nowrap;
+}
+
+.recept-sak.gjord {
+  background: #eaf5ee;
+  border-color: #b9dcc6;
+}
+
+.recept-sak.gjord::after { content: '✓'; color: #2f7d6f; font-weight: 700; }
+
+.recept-pil { color: #b6ab9c; font-size: 13px; }
+.recept-namn { font-weight: 600; color: var(--black); white-space: nowrap; }
+.recept-klart { color: var(--gron); font-weight: 600; }
+
+.sak-ikon {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  background: var(--farg);
+  flex: none;
+}
+
+.sak-ikon.kloss { border-radius: 3px; }
+.sak-ikon.krita { clip-path: polygon(30% 0, 70% 0, 58% 100%, 42% 100%); }
+.sak-ikon.mugg { border-radius: 50% 50% 45% 45%; }
+.sak-ikon.strumpa { border-radius: 5px 5px 8px 3px; }
+.sak-ikon.bok { border-radius: 2px 5px 5px 2px; }
+.sak-ikon.boll { border-radius: 50%; }
+
+.hud-knapp {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid var(--ram);
+  background: var(--kort);
+  color: var(--black);
+  font-size: 17px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.hud-knapp[data-lage='av'],
+.hud-knapp[data-lage='av'] [data-ikon] { color: #b6ab9c; }
+.hud-knapp:focus-visible { outline: 3px solid var(--farg); outline-offset: 2px; }
+
+/* ---------- spelplan ---------- */
+#scen {
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  position: relative;
+}
+
+#duk {
+  display: block;
+  border-radius: 14px;
+  box-shadow: 0 10px 26px rgba(20, 24, 31, 0.08);
+  background: #f4ecdf;
+  touch-action: none;
+  outline: none;
+}
+
+/* ---------- kontroller ---------- */
+#kontroller {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 106px;
+  padding: 0 4px;
+}
+
+#dpad {
+  display: grid;
+  grid-template-columns: repeat(3, 46px);
+  grid-template-rows: repeat(2, 46px);
+  gap: 6px;
+}
+
+.pil {
+  border: 1px solid var(--ram);
+  background: var(--kort);
+  border-radius: 13px;
+  font-size: 19px;
+  color: var(--black);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  box-shadow: 0 2px 0 rgba(20, 24, 31, 0.05);
+}
+
+.pil:active { background: #f3ece1; transform: translateY(1px); }
+.pil:focus-visible { outline: 3px solid var(--farg); outline-offset: 2px; }
+
+.pil[data-pil='upp'] { grid-column: 2; grid-row: 1; }
+.pil[data-pil='vanster'] { grid-column: 1; grid-row: 2; }
+.pil[data-pil='ner'] { grid-column: 2; grid-row: 2; }
+.pil[data-pil='hoger'] { grid-column: 3; grid-row: 2; }
+
+.kontroll-text {
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--dampad);
+  max-width: 46ch;
+}
+
+.kontroll-text strong { color: var(--black); font-weight: 600; }
+
+/* ---------- samtal & klart ---------- */
+.overlag {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(20, 24, 31, 0.34);
+  padding: 20px;
+  z-index: 40;
+}
+
+.overlag[hidden] { display: none; }
+
+.samtal {
+  background: var(--kort);
+  border: 1px solid var(--ram);
+  border-radius: 22px;
+  padding: 26px 26px 22px;
+  width: min(430px, 92vw);
+  text-align: center;
+  box-shadow: 0 20px 50px rgba(20, 24, 31, 0.18);
+}
+
+.samtal .telefon {
+  width: 54px;
+  height: 54px;
+  margin: 0 auto 10px;
+  border-radius: 50%;
+  background: #fdf2d8;
+  display: grid;
+  place-items: center;
+  font-size: 26px;
+}
+
+.samtal h2 {
+  margin: 0 0 8px;
+  font-size: 23px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.samtal p {
+  margin: 0 0 12px;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--dampad);
+}
+
+.samtal .notis {
+  display: inline-block;
+  margin-bottom: 14px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--gron);
+}
+
+.samtal .notis:empty { display: none; }
+
+.samtal button,
+.nasta-knapp {
+  border: 0;
+  border-radius: 999px;
+  background: var(--farg);
+  color: #fff;
+  font-family: inherit;
+  font-size: 17px;
+  font-weight: 600;
+  padding: 13px 26px;
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgba(224, 89, 47, 0.28);
+}
+
+.samtal button:focus-visible,
+.nasta-knapp:focus-visible { outline: 3px solid var(--black); outline-offset: 3px; }
+
+.klart-kort h2 { font-size: 26px; }
+.klart-kort .resultat { font-weight: 600; color: var(--black); margin-bottom: 18px; }
+
+.froknar { font-weight: 600; color: var(--black); }
+
+/* ---------- mobil & porträtt ---------- */
+@media (max-width: 720px), (max-height: 560px) {
+  #spelet { padding: 6px 8px 8px; gap: 4px; }
+  #hud { grid-template-columns: auto 1fr; grid-template-areas: 'v h' 'r r'; gap: 6px; }
+  .hud-vanster { grid-area: v; }
+  .hud-hoger { grid-area: h; justify-content: flex-end; }
+  #recept { grid-area: r; justify-content: flex-start; overflow-x: auto; }
+  .marke { padding: 5px 10px 5px 8px; font-size: 15px; }
+  .oreda { width: 64px; }
+  .oreda-marke { font-size: 12px; padding: 5px 9px; }
+  .hud-knapp { width: 38px; height: 38px; font-size: 15px; }
+  #kontroller { min-height: 96px; gap: 10px; }
+  #dpad { grid-template-columns: repeat(3, 44px); grid-template-rows: repeat(2, 44px); }
+  .kontroll-text { display: none; }
+}
+
+@media (max-height: 460px) {
+  .oreda-marke span { display: none; }
+  #kontroller { min-height: 84px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .oreda::after { transition: none; }
+  .oreda[data-straff='hog'] { animation: none; }
+}

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://marre-marta.skolappar.com/sitemap.xml
