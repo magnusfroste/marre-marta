@@ -69,6 +69,9 @@
       varta: false, glasogon: false, frisyr: 'kroll', telefon: false },
   ];
 
+  // Anonyma siffror till skolappar.com (kotten.js) – spelet fungerar utan.
+  const rapport = (namn, varde) => window.skolappar?.event(namn, varde);
+
   /* ---------- nivåer ---------------------------------------------------- */
   const NIVÅER = [
     { froknar: 1, mål: 3, saker: 5, oreda: 5.0, text: 'Marta går sin runda. Röj undan så mycket du kan!' },
@@ -297,6 +300,8 @@
     nivaStart = performance.now();
     rort = false;
     sag(n.text);
+    rapport('round_start');
+    rapport('level', nr + 1);
   }
 
   /* ---------- insamling ------------------------------------------------- */
@@ -310,10 +315,10 @@
       if (sak.slag === recept.sak[S.sekvens.length]) {
         S.sekvens.push(sak.slag);
         if (S.sekvens.length === recept.sak.length) byggKlapp();
-      } else if (sak.slag === recept.sak[0]) {
-        S.sekvens = [sak.slag];
       } else {
-        S.sekvens = [];
+        // Fel sak i ordningen: julklappen måste börjas om.
+        if (S.sekvens.length) rapport('hint');
+        S.sekvens = sak.slag === recept.sak[0] ? [sak.slag] : [];
       }
     }
     sakSaknas();
@@ -365,6 +370,7 @@
 
   function klartNiva() {
     S.lage = 'klart';
+    rapport('round_done');
     const sista = S.niva >= NIVÅER.length - 1;
     sag('Alla julklappar är byggda! Du fick ' + S.poang + ' stjärnor.');
     el.klart.hidden = false;
@@ -1083,6 +1089,7 @@
     el.ljud.dataset.lage = S.ljud ? 'pa' : 'av';
     el.ljud.querySelector('[data-ikon]').textContent = S.ljud ? '♪' : '✕';
     if (S.ljud) ljud.plock();
+    else rapport('sound_off');
   });
 
   el.rost.addEventListener('click', () => {
@@ -1091,6 +1098,7 @@
     el.rost.dataset.lage = S.rost ? 'pa' : 'av';
     el.rost.querySelector('[data-ikon]').textContent = S.rost ? '🗣' : '✕';
     if (!S.rost && 'speechSynthesis' in window) window.speechSynthesis.cancel();
+    if (!S.rost) rapport('sound_off');
   });
 
   el.klart.querySelector('[data-nasta]').addEventListener('click', (e) => {
