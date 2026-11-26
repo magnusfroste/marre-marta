@@ -69,7 +69,7 @@
       varta: false, glasogon: false, frisyr: 'kroll', telefon: false },
   ];
 
-  // Anonyma siffror till skolappar.com (kotten.js) – spelet fungerar utan.
+  // Anonyma siffror till skolappar.org (kotten.js) – spelet fungerar utan.
   const rapport = (namn, varde) => window.skolappar?.event(namn, varde);
 
   /* ---------- nivåer ---------------------------------------------------- */

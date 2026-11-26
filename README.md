@@ -6,7 +6,7 @@ ringer jultomten och nissarna bygger en julklapp av det Marre hittat. Fler
 fröknar dyker upp på varje nivå.
 
 Live: https://marre-marta.shipholm.dev/ (shipholm), kort i katalogen på
-https://www.skolappar.com/.
+https://www.skolappar.org/.
 
 ## Så hänger filerna ihop
 
