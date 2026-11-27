@@ -69,9 +69,6 @@
       varta: false, glasogon: false, frisyr: 'kroll', telefon: false },
   ];
 
-  // Anonyma siffror till skolappar.org (kotten.js) – spelet fungerar utan.
-  const rapport = (namn, varde) => window.skolappar?.event(namn, varde);
-
   /* ---------- nivåer ---------------------------------------------------- */
   const NIVÅER = [
     { froknar: 1, mål: 3, saker: 5, oreda: 5.0, text: 'Marta går sin runda. Röj undan så mycket du kan!' },
@@ -161,18 +158,9 @@
   };
 
   function sag(text) {
-    if (!S.rost || !text || !('speechSynthesis' in window)) return;
-    try {
-      window.speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(text);
-      u.lang = 'sv-SE';
-      u.rate = 0.95;
-      u.pitch = 1.05;
-      const svensk = window.speechSynthesis.getVoices()
-        .find((v) => /sv[-_]SE/i.test(v.lang) || /swedish|svenska/i.test(v.name));
-      if (svensk) u.voice = svensk;
-      window.speechSynthesis.speak(u);
-    } catch (e) { /* rösten är en bonus, aldrig ett krav */ }
+    if (!S.rost || !text) return;
+    try { if (window.__rost && window.__rost(text, true)) return; } catch (e) { }
+    console.warn('saknar mp3:', text);
   }
 
   /* ---------- slump ----------------------------------------------------- */
@@ -300,8 +288,6 @@
     nivaStart = performance.now();
     rort = false;
     sag(n.text);
-    rapport('round_start');
-    rapport('level', nr + 1);
   }
 
   /* ---------- insamling ------------------------------------------------- */
@@ -315,10 +301,10 @@
       if (sak.slag === recept.sak[S.sekvens.length]) {
         S.sekvens.push(sak.slag);
         if (S.sekvens.length === recept.sak.length) byggKlapp();
+      } else if (sak.slag === recept.sak[0]) {
+        S.sekvens = [sak.slag];
       } else {
-        // Fel sak i ordningen: julklappen måste börjas om.
-        if (S.sekvens.length) rapport('hint');
-        S.sekvens = sak.slag === recept.sak[0] ? [sak.slag] : [];
+        S.sekvens = [];
       }
     }
     sakSaknas();
@@ -332,7 +318,7 @@
     S.sekvens = [];
     S.receptNr += 1;
     ljud.klapp();
-    sag('Tomten ringer! Nissarna bygger en ' + recept.namn + ' av det du samlat.');
+    sag('Tomten ringer! Nissarna bygger en julklapp av det du samlat.');
     visaSamtal(
       'Tomten ringer',
       'Nissarna bygger en ' + recept.namn + ' av '
@@ -358,7 +344,7 @@
     S.poang = Math.max(0, S.poang - 2);
     S.skak = 0.4;
     ljud.bus();
-    sag(f.namn + ' tog dig! Spring till mattan och plocka vidare.');
+    sag({ Marta: 'Marta tog dig! Spring till mattan och plocka vidare.', Ulla: 'Ulla tog dig! Spring till mattan och plocka vidare.', Britt: 'Britt tog dig! Spring till mattan och plocka vidare.' }[f.namn]);
     S.marre.x = START.x;
     S.marre.y = START.y;
     S.marre.px = START.x;
@@ -370,9 +356,8 @@
 
   function klartNiva() {
     S.lage = 'klart';
-    rapport('round_done');
     const sista = S.niva >= NIVÅER.length - 1;
-    sag('Alla julklappar är byggda! Du fick ' + S.poang + ' stjärnor.');
+    sag('Alla julklappar är byggda! Vilken insats!');
     el.klart.hidden = false;
     el.klart.querySelector('[data-rubrik]').textContent = sista ? 'Alla julklappar klara!' : 'Nivån är klar!';
     const antal = (n, ental, Plural) => n + ' ' + (n === 1 ? ental : Plural);
@@ -873,7 +858,7 @@
       f.jagad = 7;
       f.arg = 2.5;
       ljud.bus();
-      sag(f.namn + ' ser dig!');
+      sag({ Marta: 'Marta ser dig!', Ulla: 'Ulla ser dig!', Britt: 'Britt ser dig!' }[f.namn]);
       return;
     }
     const punkt = RUNDA[f.nasta % RUNDA.length];
@@ -1089,7 +1074,6 @@
     el.ljud.dataset.lage = S.ljud ? 'pa' : 'av';
     el.ljud.querySelector('[data-ikon]').textContent = S.ljud ? '♪' : '✕';
     if (S.ljud) ljud.plock();
-    else rapport('sound_off');
   });
 
   el.rost.addEventListener('click', () => {
@@ -1097,8 +1081,7 @@
     el.rost.setAttribute('aria-pressed', String(S.rost));
     el.rost.dataset.lage = S.rost ? 'pa' : 'av';
     el.rost.querySelector('[data-ikon]').textContent = S.rost ? '🗣' : '✕';
-    if (!S.rost && 'speechSynthesis' in window) window.speechSynthesis.cancel();
-    if (!S.rost) rapport('sound_off');
+    if (!S.rost && window.__rostStopp) window.__rostStopp();
   });
 
   el.klart.querySelector('[data-nasta]').addEventListener('click', (e) => {

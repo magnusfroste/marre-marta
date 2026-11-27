@@ -6,13 +6,14 @@ ringer jultomten och nissarna bygger en julklapp av det Marre hittat. Fler
 fröknar dyker upp på varje nivå.
 
 Live: https://marre-marta.shipholm.dev/ (shipholm), kort i katalogen på
-https://www.skolappar.org/.
+https://www.skolappar.com/.
 
 ## Så hänger filerna ihop
 
 * `public/app.js` – spelplan 13×9 rutor i canvas, fröknarnas rundor med BFS,
   städtakt (oredamätaren), recept och julklappar, WebAudio-ljud och svensk
-  talsyntes.
+  talsyntes. Styrning: flytande tumspak (dyker upp där tummen sätts), tryck-dit-gå
+  via BFS, och piltangenter på tangentbord.
 * `public/styles.css` – HUD, receptrad, kontroller, samtal- och klarrutor. Allt
   ryms på iPad i landskap utan sidscroll.
 * `public/index.html` – SEO, Open Graph, JSON-LD och startskärm (genereras av

@@ -421,3 +421,12 @@ body { overflow: hidden; }
   .oreda::after { transition: none; }
   .oreda[data-straff='hog'] { animation: none; }
 }
+/* Rösten är OmniVoice (CC BY-NC) – licensen kräver att raden syns. */
+.rost-attribution {
+  margin: 0;
+  padding: 6px 12px 10px;
+  font-size: 10px;
+  line-height: 1.35;
+  color: #8a8177;
+  text-align: center;
+}
